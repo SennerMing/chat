@@ -2,6 +2,7 @@ package com.musician.club.chat.bytebuffer;
 
 import org.checkerframework.checker.units.qual.A;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -9,9 +10,37 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestFiles {
 
+    //文件夹遍历拷贝，创建新的文件夹
+    public static void main(String[] args) {
+        String source = "E://redis";
+        String target = "E://redisaaa";
+
+        try {
+            Files.walk(Paths.get(source)).forEach(path -> {
+                String target_name = path.toString().replace(source, target);
+                if (Files.isDirectory(path)) {
+                    try {
+                        Files.createDirectory(Paths.get(target_name));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else if (Files.isRegularFile(Paths.get(target_name))) {
+                    try {
+                        Files.copy(path, Paths.get(target_name));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     //文件夹的遍历,删除！危险！！！！！！！！！！！！！！
-    public static void main(String[] args) {
+    public static void main3(String[] args) {
         try {
 
             Files.walkFileTree(Paths.get("/Users/xxx/Downloads/"), new SimpleFileVisitor<Path>() {
