@@ -4,45 +4,45 @@
 
 学习网络编程的第一步，从NIO开始
 
-bytebuffer包
+## bytebuffer包
 
-​		TestByteBuffer
+#### 		TestByteBuffer
 
 ​		--	与FileChannel配合，使用ByteBuffer读取文件中的数据；
 
-​		TestByteBufferSplit
+#### 		TestByteBufferSplit
 
 ​		--	学习半包、粘包方案[通过分割符***\n***进行数据的处理]
 
-​		TestByteBufferString
+#### 		TestByteBufferString
 
 ​		--	学习ByteBuffer转String，String转ByteBuffer的基操
 
-​		TestFileChannel
+#### 		TestFileChannel
 
 ​		--	学习使用FileChannel进行文件的复制，传说中的zere-copy喔，2G以上文件的传输方案也有
 
-​		TestFiles
+#### 		TestFiles
 
 ​		--	学习Files工具类的使用，练习包括：文件夹遍历、文件夹的遍历删除、文件夹内容复制
 
-​		TestGatheringWrite
+#### 		TestGatheringWrite
 
 ​		--	学习ByteBuffer的一次性写入，很简单
 
-​		TestPath
+#### 		TestPath
 
 ​		--	学习Paths工具类的使用，结合着Files进行练习的，练习了一些创建文件夹、文件复制、删除文件
 
-​		TestScatteringRead
+#### 		TestScatteringRead
 
 ​		--	学习使用ByteBuffer进行分散读，很简单
 
 
 
-netserver包
+## netserver包
 
-​		TestServer
+#### 		TestServer
 
 ​		--	1.使用未配置的ServerSocketChannel进行BIO的理解与练习，这会产生效率，与开发难度上的问题；
 
@@ -56,7 +56,7 @@ netserver包
 
 ​		--	4.进行动态扩容的学习
 
-​		TestClient
+#### 		TestClient
 
 ​		--	与TestServer配合使用进行Server端相关处理的学习与练习
 
