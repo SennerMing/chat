@@ -14,6 +14,103 @@ import java.util.List;
 
 public class TestServer {
 
+
+    /**
+     * 动态扩容的学习，使用到了ServerSocket中attachment
+     * @param args
+     * @throws IOException
+     */
+    public static void main(String[] args) throws IOException {
+        //使用 nio 工具类 来理解阻塞编程
+        //1.创建一个Selector
+        Selector selector = Selector.open();
+
+        //2.创建一个服务器
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        //一句话改为非阻塞模式，下面的accept，就会不阻塞啦，没有连接的话就是返回null
+        serverSocketChannel.configureBlocking(false);
+        //绑定端口号
+        serverSocketChannel.bind(new InetSocketAddress(8080));
+
+
+        SelectionKey serverSocketSelectionKey = serverSocketChannel.register(selector, 0, null);
+
+        // SelectionKey 就是将来可以通过这个key获得哪个channel发生的事件
+        //监听Accept事件
+        serverSocketSelectionKey.interestOps(SelectionKey.OP_ACCEPT);
+
+        //接受连接与数据的读写
+        while (true) {
+            //3.select方法，同样是阻塞的，如果有事件发生，那么线程才会恢复运行
+            selector.select();
+
+            //4.处理感兴趣的事件,通过selector.selectedKeys()内部包含了所有发生的事件
+            Iterator<SelectionKey> selectionKeyIterable = selector.selectedKeys().iterator();
+            while (selectionKeyIterable.hasNext()) {
+                SelectionKey selectionKey = selectionKeyIterable.next();
+                //拿到SelectionKey就给它干掉，否则下次遍历，还是会遍历到，由于下面的逻辑会将事件消费掉，因此会引起事件获取为null的情况
+                selectionKeyIterable.remove();
+
+                //5.区分下事件类型
+                if (selectionKey.isAcceptable()) {//如果是Accept事件
+                    System.out.println("key:" + selectionKey);
+                    ServerSocketChannel serverSocketChannel1 = (ServerSocketChannel) selectionKey.channel();
+                    SocketChannel socketChannel = serverSocketChannel1.accept();
+                    socketChannel.configureBlocking(false);
+
+                    //***************** 动态扩容第一步，为接收到的Channel添加一个附件，attachment(Object) *******************
+                    //将一个ByteBuffer作为一个附件关联到SelectionKey中，让ByteBuffer的生命周期同SelectionKey
+                    ByteBuffer attach_byteBuffer = ByteBuffer.allocate(16);
+                    SelectionKey clientSocketSelectionKey = socketChannel.register(selector, 0, attach_byteBuffer);
+
+                    clientSocketSelectionKey.interestOps(SelectionKey.OP_READ);
+                    System.out.println("connected socket channel:" + socketChannel);
+
+                } else if (selectionKey.isReadable()) { //如果是read事件
+                    try {
+
+                        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+                        //******************* 动态扩容第二步，将存储到SelectionKey中的attachment取回 ********************
+                        //从SocketChannel中获得相应的ByteBuffer
+                        ByteBuffer byteBuffer = (ByteBuffer) selectionKey.attachment();
+                        int read = socketChannel.read(byteBuffer);
+                        if (read == -1) { //如果未读取到数据，甭管是client正常关闭还是就没有数据发送来，就直接cancel掉！
+                            selectionKey.cancel();
+                        } else {
+                            splitRead(byteBuffer);
+                            //***************** 动态扩容第三步 进行ByteBuffer的扩展 ******************
+                            //这里讲一下原因，为什么position和limit相等就证明需要扩容了
+                            //因为splitRead中，循环每一个字节，如果找到了对应的分隔符，才进行数据的读取
+                            //如果没有找到，则什么也不做，也就是说没有进行ByteBuffer内容的消费，
+                            //即使splitRead最后进行了compact()压缩操作，因为没有进行数据的读取，所以压了个寂寞
+                            //看看compact里面都干了些啥吧
+                            //  position(remaining());剩下了多少未读
+                            //  limit(capacity());容量是多大
+                            //  可不就相等嘛
+                            if (byteBuffer.position() == byteBuffer.limit()) {
+                                //那么，让我们进行扩容操作吧！！
+                                ByteBuffer newByteBuffer = ByteBuffer.allocate(byteBuffer.capacity() * 2);
+                                byteBuffer.flip();//需要将byteBuffer重回读模式因为下面的put()方法会调用byteBuffer.get()
+                                newByteBuffer.put(byteBuffer);
+                                selectionKey.attach(newByteBuffer);//将扩容后的byteBuffer重新加入到了selectionKey中
+                            }
+
+                        }
+                    } catch (IOException e) {
+                        //客户端在强制关闭连接的时候，上面的socketChannel.read()读不到数据，会抛错误
+                        //并且会触发channel中的read的事件，需要将事件进行取消！就不会不停的循环
+                        selectionKey.cancel();
+                        e.printStackTrace();
+                    }
+
+                } else {
+                    //可以不做任何处理,事件的话，不是处理就是cancel，不能置之不理，太坏！
+                    selectionKey.cancel();
+                }
+            }
+        }
+    }
+
     /**
      * main2中的例子其实是因为没有界定好信息边界的问题，那么这个例子就来解决它，我们将ByteBuffer的capacity变小
      * 俗称：半包，粘包问题
@@ -28,7 +125,7 @@ public class TestServer {
      * @param args
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
+    public static void main3(String[] args) throws IOException {
         //使用 nio 工具类 来理解阻塞编程
         //1.创建一个Selector
         Selector selector = Selector.open();

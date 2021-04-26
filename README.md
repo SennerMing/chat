@@ -54,6 +54,23 @@ netserver包
 
 ​		--		TestByteBufferSplit进行半包和粘包的处理
 
+​		--	4.进行动态扩容的学习
+
 ​		TestClient
 
 ​		--	与TestServer配合使用进行Server端相关处理的学习与练习
+
+## ByteBuffer
+
+每个Channel都需要记录可能被切分的消息，因为ByteBuffer不能被多个Channel共同使用，否则数据就乱掉了，因此需要为每个Channel维护一个独立的ByteBuffer
+
+ByteBuffer不能太大，比如一个ByteBuffer 1MB的话，需要支持百万连接的话，就要1TB的内存，因此需要设计大小可变的自适应的ByteBuffer(Netty可以做得到，hin牛批)
+
+​		--	一种思路是，首先分配一个比较小的ByteBuffer，例如4k，如果发现数据不够，再分配8k的ByteBuffer，				4k的ByteBuffer内容拷贝至8k中，有点事消息连续的话，容易进行处理，缺点是数据拷贝耗费性能；
+
+​		--	另一种思路就是，使用多个ByteBuffer组成的数组，一个数组不够，把多出来的内容写入新的数组，与前
+
+​				面的区别就是消息存储不连续解析复杂，优点是避免了拷贝引起的性能损耗
+
+
+
