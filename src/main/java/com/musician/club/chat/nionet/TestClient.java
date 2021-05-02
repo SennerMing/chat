@@ -1,4 +1,4 @@
-package com.musician.club.chat.netserver;
+package com.musician.club.chat.nionet;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,10 +14,10 @@ public class TestClient {
     public static void main(String[] args) {
         try {
             SocketChannel socketChannel = SocketChannel.open();
-            socketChannel.connect(new InetSocketAddress(8080));
+            socketChannel.connect(new InetSocketAddress("127.0.0.1", 8080));
             System.out.println("waiting connecting...");
-//            socketChannel.write(Charset.defaultCharset().encode("hello:" + new Random().nextInt()));
-            socketChannel.write(StandardCharsets.UTF_8.encode("hello\n" + "world\n"+"nihao\n"));
+            socketChannel.write(Charset.defaultCharset().encode("hello:" + new Random().nextInt()));
+//            socketChannel.write(StandardCharsets.UTF_8.encode("hello\n" + "world\n"+"nihao\n"));
 
             socketChannel.close();
         } catch (IOException e) {

@@ -1,4 +1,4 @@
-package com.musician.club.chat.netserver;
+package com.musician.club.chat.nionet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -1,4 +1,4 @@
-package com.musician.club.chat.bytebuffer;
+package com.musician.club.chat.niobasic;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

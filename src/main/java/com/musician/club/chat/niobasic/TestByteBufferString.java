@@ -1,4 +1,4 @@
-package com.musician.club.chat.bytebuffer;
+package com.musician.club.chat.niobasic;
 
 import lombok.extern.slf4j.Slf4j;
 
