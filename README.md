@@ -287,13 +287,44 @@ Netty vs 其他网络应用框架
 
 添加依赖，实现向服务器发送HelloWorld，并返回消息
 
+- NioEventLoopGroup：用来对事件的轮询处理，四大事件嘛，connect、accept、read、write，一旦有事件发生就触发
+- childHandler：监听到连接事件发生时，就会执行initChannel，对Channel进行初始化
+- pipeline：是一个流水线，当NioEventLoopGroup中监听到有读写事件发生时，pipeline里面的处理器，会按照添加顺序去执行
+- sync()：阻塞方法，知道建立连接，才会放行
 
+### 正确观念
 
+- 把channel理解为数据的通道
+- 把msg理解为流动的数据，最开始输入是ByteBuf，但经过pipeline的加工，会变成其他类型的对象，最后输出又变成ByteBuf
+- 把handler理解为数据的处理工序
+  - 工序有多道，合在一起就是pipeline，pipeline负责事件发布（读、读取完成...）传播给每个handler，handler对自己感兴趣的事件进行处理（重写了相应事件的处理方法）
+  - handler分inbound和outbound两类
 
+- 把eventLoop理解为处理数据的工人
+  - 工人可以管理多个channel的io操作，并且一旦工人负责了某个channel，就要负责到底（绑定）
+  - 工人既可以进行io操作，也可以进行任务处理，每位工人有任务队列，队列里可以堆放多个channel的待处理任务，任务分为普通任务、定时任务
+  - 工人按照pipeline顺序，依次按照handler的规划（代码）处理数据，可以为每道工序指定不同工人
 
+### 组件
 
+#### EventLoop
 
+EventLoop本质是一个单线程执行器（同事维护了一个Selector），里面有run方法处理Channel上源源不断的io事件。
 
+它的继承关系比较复杂：
+
+- 一条线是继承自JUC的ScheduleExecutorService因此包含了线程池中所有的方法
+- 另一天线是继承自Netty自己的OrderedEventExecutor
+  - 提供了boolean inEventLoop(Thread thread)方法，判断一个线程是否属于此EventLoop
+  - 提供了parent方法来看看自己属于哪个EventLoopGroup
+
+#### EventLoopGroup
+
+EventLoopGroup是一组EventLoop,Channel一般会调用EventLoopGroup的register方法来绑定其中一个EventLoop，后续这个Channel上的io事件都有此EventLoop来处理（保证了io事件处理时的线程安全）
+
+- 继承自Netty自己的EventExecutorGroup
+  - 实现了Iterable接口提供遍历EventLoop的能力
+  - 另有next方法获取集合中下一个EventLoop
 
 
 
