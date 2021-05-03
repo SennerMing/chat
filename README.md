@@ -143,7 +143,7 @@ int count = selector.selectNow();
 
 同步阻塞、同步非阻塞、多路复用、异步阻塞（网上有种理解是异步情况下，没有阻塞的，没有异步阻塞的说法）、异步非阻塞，前三者都是同步
 
-异步：简单理解，同一个线程进行创建并获取结果
+同步：简单理解，同一个线程进行创建并获取结果
 
 异步：简单理解，一个线程创建，一个线程获取结果返回
 
@@ -234,10 +234,68 @@ DirectByteBuffer减少了一次数据拷贝，用户态与内核态的切换次�
 AIO用来解决数据复制阶段的阻塞问题
 
 - 同步意味着，在进行读写操作的时候，线程需要等待结果，还是相当于闲置
+
 - 异步意味着，在进行读写操作的时候，线程不必等待结果，而是将来由操作系统通过回调的方式，由另外的线程获得结果
 
-###### 异步模型需要底层操作系统（Kernel）提供支持
+  ###### 异步模型需要底层操作系统（Kernel）提供支持
 
 - ###### Windows系统通过IOCP实现了真正的异步IO
 
 - ###### Linux系统异步IO在2.6的版本引入，但其底层实现还是使用多路复用模拟了异步IO，性能没有优势
+
+查看aio包下的AsynchronousFileChannel的使用栗子
+
+## Netty
+
+Netty是一个异步的事件驱动的网络应用框架，用来快速开发可维护的高可用的网络服务和客户端
+
+Netty中的异步所指的并不是AIO，参照IO模型中的异步
+
+Netty对于Java网络应用框架好比Spring于JavaEE
+
+使用到Netty进行网络通信的：
+
+- Cassandra - nosql数据库
+- Spark - 大数据分布式计算
+- Hadoop - 大数据分布式存储
+- RocketMQ - ali开源的消息队列
+- Elasticsearch - 搜索引擎
+- gRPC - rpc框架
+- Dubbo - ali rpc框架
+- Spring 5.x - webflux，完全抛弃tomcat，使用netty作为服务器
+- Zookeeper - 分布式协调框架
+
+### Netty与NIO
+
+Netty基于NIO，自己使用NIO工作量大，自己使用NIO
+
+- 需要自己构建协议
+- 解决TCP传输问题，像是粘包、半包
+- epoll空轮询导致的CPU占用率100%
+- 对API进行增强，使之更易用，如FastThreadLocal ==> ThreadLocal，ByteBuf ==> ByteBuffer
+
+Netty vs 其他网络应用框架
+
+- Mina由apcahe维护，将来3.x版本可能会有较大的重构，破坏API向下兼容性，Netty的开发迭代更迅速，API更简洁、文档更全面
+- 久经考验的，有16年之久，Netty版本
+  - 2.x 2004
+  - 3.x 2008
+  - 4.x 2013
+  - 5.x 已废弃（并没有明显的性能提升，维护成本高）
+
+### HelloWorld
+
+添加依赖，实现向服务器发送HelloWorld，并返回消息
+
+
+
+
+
+
+
+
+
+
+
+
+
