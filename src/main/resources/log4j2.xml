@@ -87,6 +87,10 @@
             <AppenderRef ref="Console"/>
         </Logger>
 
+        <Logger name="io.netty.handler.logging.LoggingHandler" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
         <root level="info">
             <appender-ref ref="Console"/>
             <appender-ref ref="Filelog"/>

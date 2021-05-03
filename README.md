@@ -314,7 +314,7 @@ EventLoop本质是一个单线程执行器（同事维护了一个Selector），
 它的继承关系比较复杂：
 
 - 一条线是继承自JUC的ScheduleExecutorService因此包含了线程池中所有的方法
-- 另一天线是继承自Netty自己的OrderedEventExecutor
+- 另一条线是继承自Netty自己的OrderedEventExecutor
   - 提供了boolean inEventLoop(Thread thread)方法，判断一个线程是否属于此EventLoop
   - 提供了parent方法来看看自己属于哪个EventLoopGroup
 
@@ -326,7 +326,39 @@ EventLoopGroup是一组EventLoop,Channel一般会调用EventLoopGroup的register
   - 实现了Iterable接口提供遍历EventLoop的能力
   - 另有next方法获取集合中下一个EventLoop
 
+自定义外部EvenLoopGroup，过个EventLoopGroup会绑定一个Channel，如果某个handler执行的时间过长，可以单独创建一个DefaultEventLoopGroup，为了不影响Nio的处理
 
+多个Handler之间执行中如何换人？
 
+多个Handler如果是在不同的EventLoopGroup中，那么怎样进行交接班的处理的？
 
+io.netty.channel.AbstractChannelHandlerContext#invokeChannelRead()，这个函数就可以让handler一个一个往下调用
 
+```java
+final Object m = next.pipline.touch(ObjectUtil.checkNotNull(msg,"msg"),next);
+EventExecutor executor = next.executor();//返回的下一个handler的eventLoop
+if(executor.inEventLoop()){//当前handler中的线程，是否和executor(下一个handler的eventLoop)是同一个线程
+  next.invokeChannelRead(m)
+}else{//不是，将执行的代码作为任务提交给下一个事件循环eventLoop进行处理
+  executor.execute(new Runnable(){
+    @Override
+    public void run(){
+      next.invokeChannelRead(m);
+    }
+  });
+}
+```
+
+如果两个handler绑定的是同一个线程(EventLoop)，那么就直接调用，否则，把调用的代码，封装成一个任务对象，由下一个handler的线程来调用。
+
+#### Channel
+
+channel的主要作用
+
+- close()：可以用来关闭channel
+- closeFuture()：用来处理channel的关闭
+  - sync方法作用是同步等待channel连接的建立
+  - addListener方法是异步等待channel关闭
+- pipeline()方法添加处理器
+- write()方法将数据写入
+- writeAndFlush()方法将数据写入并立刻刷出
