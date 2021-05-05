@@ -362,3 +362,55 @@ channel的主要作用
 - pipeline()方法添加处理器
 - write()方法将数据写入
 - writeAndFlush()方法将数据写入并立刻刷出
+
+#### Future & Promise
+
+在异步处理的时候，经常用到这两个接口
+
+首先要说明Netty中的Future与JDK中的Future同名，但是是两个接口，Netty中的Future继承自JDK的Future，而Promise又对Netty Future进行了扩展
+
+- JDK Future只能同步等待任务结束（或成功、或失败）才能得到结果
+- Netty Future 可以同步等待任务结束得到结果，也可以以异步方式得到结果，但都是要等待任务结束
+- Netty Promise不仅有Netty Future的功能，而且脱离了任务独立存在，只作为两个线程间传递结果的容器
+
+##### JDK Future、Netty Future & Promise
+
+​	cancel：JDK Future -- 取消任务
+
+​	isCanceled：JDK Future -- 任务是否取消
+
+​	isDone：JDK Future -- 任务是否完成，不能区分成功还是失败
+
+​	get：JDK Future -- 获取任务结果，阻塞等待
+
+​	getNow：Netty Future -- 获取任务结果，非阻塞，还未产生结果时返回null
+
+​	await：Netty Future -- 等待任务结果，如果任务失败，不会抛异常，而是通过isSuccess判断
+
+​	sync： Netty Future -- 等待任务结束，如果任务失败，抛出异常
+
+​	isSuccess：Netty Future -- 判断任务是否成功
+
+​	cause：Netty Future -- 获取失败信息，非阻塞，如果没有失败，返回null
+
+​	addListener：Netty Future -- 添加回调，异步接收结果
+
+​	setSuccess：Netty Promise -- 设置成功结果
+
+​	setFailure：Netty Promise -- 设置失败结果
+
+#### Handler & Pipeline
+
+ChannelHandler用来处理Channel上的各种事件，分为入站、出站两种，所有的ChannelHandler被连成一串就是Pipeline
+
+- 入站处理器通常是ChannelInBoundHandlerAdapter的子类，主要用来读取客户端数据，写回结果
+- 入站处理器通常是ChannelOutBoundHandlerAdapter的子类，主要对写回结果进行加工
+
+打个比喻，每个Channel是一个产品加工的车间，Pipeline是车间中的流水线，ChannelHandler就是流水线上的各道工序，而后面要讲的ByteBuf是原材料，经过很多工序的加工：先经过一道道入站工序，再经过一道道出站工序，形成最终的产品
+
+Netty的Pipeline会默认添加head和tail，我们调用的pipeline.addLast()是添加顺序放在head和tail之间，也可以理解为每次都添加到tail之前
+
+入站：按照in添加顺序
+
+出站：按照out添加逆序
+
