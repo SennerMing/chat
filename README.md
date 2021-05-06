@@ -414,3 +414,73 @@ Netty的Pipeline会默认添加head和tail，我们调用的pipeline.addLast()�
 
 出站：按照out添加逆序
 
+#### ByteBuf
+
+##### 直接内存 vs 堆内存
+
+可以使用下面的代码来创建池化基于堆的ByteBuf
+
+```java
+ByteBuf byteBuf = ByteBufAllocator.DEFAULT.heapBuffer(10);
+```
+
+也可以使用下面的代码来创建池化基于直接内存的ByteBuf
+
+```java
+ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(10);
+```
+
+- 直接内存创建和销毁的代价比较昂贵，但是读写性能比较高（少一次内存复制），适合配合池化功能一起用
+- 直接内存对GC压力小，因为这部分不受JVM垃圾回收的管理，但也要注意及时主动的释放
+
+##### 池化 vs 非池化
+
+池化的最大意义就在于可以重用ByteBuf，池化默认开启，优点有
+
+- 没有池化，则内次都得创建新的ByteBuf实例，这个操作对直接内存代价昂贵，就算是堆内存，也会增加GC压力
+- 有了池化，则可以重用池中的ByteBuf实例，并且采用了与jemalloc类似的内存分配算法提升分配效率
+- 高并发时，池化功能更节约内存，减少内存溢出的可能
+
+池化功能是否开启，可以通过下面的系统环境变量来设置
+
+```java
+-Dio.netty.allocator.type={unpooled|pooled}
+```
+
+- 4.1以后，非Android平台默认启用池化实现，Android平台启用非池化实现
+- 4.1之前，池化功能还不成熟，默认是非池化实现
+
+扩容规则
+
+- 如果写入后数据大小未超过512，则选择下一个16的整数倍，例如写入后大小为12，则扩容后capacity是16
+- 如果写入后数据大小超过512，则选择下一个2^n，例如写入后大小为513，则扩容后capacity是2^10=1024(2^9=512已经不够用了)
+- 扩容不能超过max capacity，否则会报错
+
+##### retian & release
+
+由于Netty中有对外内存的ByteBuf实现，堆外内存最好是手动来释放，而不是等GC来回收。
+
+- UnpooledHeadpByteBuf使用的是JVM内存，只需等待GC回收即可
+
+- UnpooledDirectByteBuf使用的就是直接内存了，需要特殊的方法来回收内存
+
+- PooledByteBuf和它的子类使用了池化机制，需要更复杂的规则来回收内存
+
+  - 回收内存的源码实现，可关注下面方法的不同实现
+
+    protected abstract void dellocate()
+
+Netty这里采用了引用计数法来控制回收内存，每个ByteBuf都实现了ReferenceCounted接口
+
+- 每个ByteBuf对象的初始计数为1
+- 调用release方法计数减1，如果计数为0，ByteBuf内存被回收
+- 调用retain方法计数加1，标识调用者没用完之前，其他handler即使调用了release也不会造成回收
+- 当计数为0时，底层内存会被回收，这时即使ByteBuf对象还在，其他各个方法均无法正常使用
+
+##### ByteBuf优势
+
+- 池化 - 可以重用池中的ByteBuf实例，更节约内存，减少内存溢出的可能
+- 读写指针分离，不需要像ByteBuffer一样切换读写模式
+- 可以自动扩容
+- 支持链式调用，使用更流畅
+- 很多地方体现0拷贝，例如slice、duplicate、compositeByteBuf
